@@ -6,6 +6,8 @@ El modelo debe alcanzar 3FN y soportar usuarios con múltiples roles, profesiona
 
 Los catálogos fijos se precargan. EPS, planes y especialidades son configurables por ADMIN; los catálogos referenciados por transacciones no se eliminan físicamente.
 
+La afiliación opcional del registro se almacena en `user_affiliations`, con una FK a `users` y otra a `eps_plans`. La tabla `users` no duplica nombres ni IDs de EPS o plan.
+
 ## PREGUNTA ABIERTA
 
 La estrategia concreta para evitar doble reserva, representar retenciones y decidir snapshots históricos no está prescrita. Requiere una decisión de diseño antes de implementar persistencia.

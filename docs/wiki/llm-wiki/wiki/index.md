@@ -2,9 +2,9 @@
 
 ## Estado
 
-- Última actualización: 2026-09-18
+- Última actualización: 2026-09-23
 - Alcance: coordinación global de `citas-api` y `citas-web`
-- Estado de implementación: repositorios de aplicación aún sin lógica de negocio
+- Estado de implementación: API de registro USER y frontend React/Vite integrados para afiliación opcional
 
 ## Fuentes RAW vigentes
 

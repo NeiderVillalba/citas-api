@@ -8,9 +8,9 @@
 - La URL backend debe ser configurable por environment.
 - Los workflows n8n se versionan como JSON en `citas-api/automations/n8n/`.
 
-## Estado
+## Estado observado
 
-PREGUNTA ABIERTA: seleccionar e importar el framework frontend después del diseño aprobado.
+`citas-web` está importado como React + TypeScript + Vite. `citas-api` se inicializó con Spring Boot y estructura por puertos y adaptadores. El backend sigue creciendo por slices; no inferir que los recursos del PRD ya están implementados.
 
 ## Evidencia
 
