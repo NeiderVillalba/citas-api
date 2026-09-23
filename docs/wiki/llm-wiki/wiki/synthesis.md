@@ -9,6 +9,7 @@ La aplicación debe cubrir registro, autenticación JWT con refresh, perfil y af
 ## Estado actual
 
 - `citas-api` implementa consulta de planes activos y registro USER con afiliación opcional persistida por FK.
+- `citas-api` implementa reservas por slots: la cita general nace `APPROVED`, la especializada `REQUESTED`, y ningún slot puede asociarse a dos citas.
 - `citas-web` usa React, TypeScript y Vite; el formulario carga planes activos y permite continuar sin elegir uno.
 - El subcontrato REST de planes y registro está aprobado; los demás recursos aún requieren contrato.
 - Ambos repositorios usan `develop` como rama de trabajo.

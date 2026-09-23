@@ -8,9 +8,9 @@ Los catálogos fijos se precargan. EPS, planes y especialidades son configurable
 
 La afiliación opcional del registro se almacena en `user_affiliations`, con una FK a `users` y otra a `eps_plans`. La tabla `users` no duplica nombres ni IDs de EPS o plan.
 
-## PREGUNTA ABIERTA
+Las reservas usan `availability_slots` como inventario de franjas por profesional. `appointments` conserva la cita y `appointment_slots` enlaza cada cita con sus slots; una restricción única sobre `appointment_slots.slot_id` impide que un slot se asocie a dos citas. La operación bloquea los slots solicitados y verifica su consecutividad antes de crear las relaciones.
 
-La estrategia concreta para evitar doble reserva, representar retenciones y decidir snapshots históricos no está prescrita. Requiere una decisión de diseño antes de implementar persistencia.
+La cita almacena FKs a usuario, profesional y especialidad; `appointmentType` define si el estado inicial es `APPROVED` o `REQUESTED`. La duración se deriva de la especialidad y no se duplica en la cita.
 
 ## Evidencia
 

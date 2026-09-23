@@ -1,5 +1,7 @@
 package com.fcv.citas.user.adapter.in.rest;
 
+import com.fcv.citas.appointment.domain.InvalidAppointmentRequestException;
+import com.fcv.citas.appointment.domain.SlotUnavailableException;
 import com.fcv.citas.user.domain.InvalidPlanException;
 import com.fcv.citas.user.domain.UserAlreadyExistsException;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -11,6 +13,18 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 @RestControllerAdvice
 public class ApiExceptionHandler {
+    @ExceptionHandler(SlotUnavailableException.class)
+    public ResponseEntity<ApiError> slotUnavailable(SlotUnavailableException exception) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(new ApiError("SLOT_UNAVAILABLE", exception.getMessage()));
+    }
+
+    @ExceptionHandler(InvalidAppointmentRequestException.class)
+    public ResponseEntity<ApiError> invalidAppointmentRequest(InvalidAppointmentRequestException exception) {
+        return ResponseEntity.badRequest()
+                .body(new ApiError("INVALID_APPOINTMENT_REQUEST", exception.getMessage()));
+    }
+
     @ExceptionHandler(InvalidPlanException.class)
     public ResponseEntity<ApiError> invalidPlan(InvalidPlanException exception) {
         return ResponseEntity.badRequest()

@@ -4,7 +4,7 @@
 
 - Última actualización: 2026-09-23
 - Alcance: coordinación global de `citas-api` y `citas-web`
-- Estado de implementación: API de registro USER y frontend React/Vite integrados para afiliación opcional
+- Estado de implementación: registro USER con afiliación opcional, frontend React/Vite integrado y reserva backend con exclusión de slots
 
 ## Fuentes RAW vigentes
 

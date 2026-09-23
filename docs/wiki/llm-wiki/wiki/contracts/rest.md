@@ -22,6 +22,16 @@ El PRD exige una API REST JSON consumida directamente por el frontend. El subcon
 
 Los nombres de EPS y plan se exponen para mostrar el catálogo en el formulario, pero se almacenan en sus tablas de catálogo, no en `users`.
 
+## Reserva de citas
+
+- `POST /api/v1/appointments`
+- Cuerpo: `userId`, `professionalId`, `specialtyId`, `startsAt` (ISO-8601 con zona) y `appointmentType` (`GENERAL` o `SPECIALIZED`).
+- La duración no viaja en el cliente: se deriva de la especialidad activa (30 o 60 minutos). Los slots de disponibilidad deben existir, ser consecutivos y pertenecer al profesional.
+- Respuesta exitosa: `201 Created` con `{ "id": number, "status": "APPROVED" | "REQUESTED" }`.
+- Una cita `GENERAL` nace `APPROVED`; una `SPECIALIZED` nace `REQUESTED`. Ambos estados retienen sus slots mientras estén vigentes.
+- Si algún slot solicitado ya está asociado a otra cita, o no existe como disponibilidad del profesional, responde `409 Conflict` con `{ "code": "SLOT_UNAVAILABLE", "message": string }`.
+- La reserva bloquea transaccionalmente los slots de disponibilidad en orden ascendente y la unicidad de `appointment_slots.slot_id` es la salvaguarda de persistencia contra doble reserva.
+
 ## Regla de evolución
 
 Antes de modificar un contrato se debe documentar la propuesta, identificar ambos repositorios afectados y aportar evidencia backend y frontend. La implementación debe seguir este subcontrato aprobado.

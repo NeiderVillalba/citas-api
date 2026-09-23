@@ -13,3 +13,5 @@
 2026-09-23 | LEARN | afiliación opcional durante registro | aprobación explícita del usuario | se aprobó el subcontrato GET planes activos y POST registro con planId opcional y error 400 INVALID_PLAN; el alcance ya puede implementarse.
 
 2026-09-23 | LEARN | estado de implementación del slice de afiliación | código, migración Flyway y pruebas de ambos repositorios | API y frontend implementan el contrato aprobado; se actualizaron las síntesis y el índice para reflejar React/Vite y evidencia de verificación.
+2026-09-23 | DECISIÓN | reservas sin doble agenda | aprobación explícita del usuario | `POST /api/v1/appointments` crea reservas generales `APPROVED` o especializadas `REQUESTED`; los slots se bloquean transaccionalmente y la asociación única por slot impide doble reserva.
+2026-09-23 | LINT | reserva transaccional de slots | pruebas REST/persistencia de backend y verificación de frontend | `mvn test` aprobó 7 pruebas, incluidas las reservas general y especializada; el segundo intento sobre el mismo slot respondió `409 SLOT_UNAVAILABLE`. `npm test`, typecheck y build del cliente también aprobaron.
