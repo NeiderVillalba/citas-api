@@ -6,5 +6,5 @@ public record MyAppointment(long id, long professionalId, String professionalNam
                             long specialtyId, String specialtyName, int durationMinutes,
                             Long venueId, String venueName, String venueAddress,
                             Instant startsAt, AppointmentType appointmentType,
-                            AppointmentStatus status) {
+                            AppointmentStatus status, String rejectionReason) {
 }

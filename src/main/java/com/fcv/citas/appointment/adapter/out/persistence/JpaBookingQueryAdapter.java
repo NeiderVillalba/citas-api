@@ -95,6 +95,6 @@ public class JpaBookingQueryAdapter implements BookingQueryPort {
                 appointment.getVenue() == null ? null : appointment.getVenue().getId(),
                 appointment.getVenue() == null ? null : appointment.getVenue().getName(),
                 appointment.getVenue() == null ? null : appointment.getVenue().getAddress(),
-                appointment.getStartsAt(), appointment.getAppointmentType(), appointment.getStatus());
+                appointment.getStartsAt(), appointment.getAppointmentType(), appointment.getStatus(), appointment.getRejectionReason());
     }
 }

@@ -2,5 +2,9 @@ package com.fcv.citas.appointment.domain;
 
 public enum AppointmentStatus {
     APPROVED,
-    REQUESTED
+    REQUESTED,
+    REJECTED,
+    CANCELLED,
+    COMPLETED,
+    NO_SHOW
 }

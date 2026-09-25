@@ -51,6 +51,9 @@ public class AppointmentEntity {
     @Column(nullable = false, length = 20)
     private AppointmentStatus status;
 
+    @Column(name = "rejection_reason", length = 1000)
+    private String rejectionReason;
+
     protected AppointmentEntity() {
     }
 
@@ -80,4 +83,9 @@ public class AppointmentEntity {
     public Instant getStartsAt() { return startsAt; }
     public AppointmentType getAppointmentType() { return appointmentType; }
     public AppointmentStatus getStatus() { return status; }
+    public String getRejectionReason() { return rejectionReason; }
+    public void transitionTo(AppointmentStatus status, String rejectionReason) {
+        this.status = status;
+        this.rejectionReason = rejectionReason;
+    }
 }

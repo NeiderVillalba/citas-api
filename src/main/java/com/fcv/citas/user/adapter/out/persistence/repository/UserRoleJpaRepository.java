@@ -10,4 +10,5 @@ import java.util.List;
 public interface UserRoleJpaRepository extends JpaRepository<UserRoleEntity, Long> {
     @Query("select ur.role.code from UserRoleEntity ur where ur.user.id = :userId")
     List<String> findRoleCodesByUserId(@Param("userId") Long userId);
+    boolean existsByUserIdAndRoleCode(Long userId, String code);
 }

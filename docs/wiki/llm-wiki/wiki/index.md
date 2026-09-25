@@ -4,7 +4,7 @@
 
 - Última actualización: 2026-09-25
 - Alcance: coordinación global de `citas-api` y `citas-web`
-- Estado de implementación: portal USER Stitch/React acoplado a registro, sesión, catálogos, disponibilidad por sede, reserva y Mis citas; seed sintético local opcional. ADMIN/PROFESSIONAL y ciclo de vida avanzado pendientes.
+- Estado de implementación: portal USER Stitch/React conectado a registro, sesión, búsqueda/reserva, cancelación e historial; bandeja ADMIN para aprobación/rechazo; seed sintético local opcional. Perfil, catálogos configurables, reprogramación y agenda PROFESSIONAL siguen pendientes.
 
 ## Fuentes RAW vigentes
 

@@ -20,6 +20,7 @@
 - El acople del portal USER usa únicamente datos REST para especialidades, sedes, profesionales, disponibilidad y citas. Se conserva el lenguaje visual Stitch, pero se retiran de la navegación clínica, recetas, videollamada y avisos simulados por estar fuera del PRD.
 - La migración V4 incorpora las dos sedes públicas del PRD. Los slots/citas previos quedan con sede nula para evitar una asignación retroactiva ficticia; las reservas nuevas exigen `venueId` y slots de esa sede.
 - `DEMO_SEED=true` habilita datos sintéticos locales y horarios próximos para recorrer el portal sin credenciales de profesionales. La opción queda desactivada por defecto en el servicio.
+- Las decisiones de cita siguen el PRD: ADMIN solo decide solicitudes futuras `REQUESTED`; rechazo requiere motivo y libera slots, mientras USER puede cancelar citas propias futuras. V5 registra los cambios del ciclo inicial en auditoría. El portal ADMIN hereda los componentes y paleta Stitch; no se copiaron módulos de IA Studio que introducen Express/Gemini.
 
 ## Pendientes de decisión
 

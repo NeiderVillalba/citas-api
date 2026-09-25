@@ -19,3 +19,9 @@
 2026-09-25 | QUERY | integración de frontend Stitch/AI Studio | ZIP `medcitas---portal-médico-y-gestión-de-citas.zip` y árbol actual de `citas-web` | la mayoría de vistas/estilos ya coincide byte por byte; la variante del ZIP quita registro REST y añade Express/Gemini, por lo que esos cambios no se copian. El flujo vigente conserva assets locales, pruebas y consumo directo de Spring.
 2026-09-25 | LEARN | acople REST del portal USER Stitch | PRD, HU-005/HU-007, código de ambos repositorios y ZIP entregado | se añadieron consultas de especialidades, sedes, profesionales, disponibilidad y citas propias; la reserva requiere sede y la interfaz usa datos REST. Se ocultaron pantallas fuera del PRD y se agregó seed sintético local opcional.
 2026-09-25 | LINT | compilación del acople USER | Maven Java 21 con pruebas omitidas, TypeScript/Vite | compilación de API y frontend completada; no se verificó un recorrido contra MySQL en ejecución en esta sesión.
+
+2026-09-25 | LEARN | ciclo inicial de vida de citas y acople ADMIN Stitch | PRD RF-12/RF-14/RF-19, API, portal React y contrato REST | V5 agrega estados extendidos, motivo de rechazo e historial; ADMIN puede aprobar/rechazar y USER cancelar; React conecta bandeja, cancelación e historial. Se mantienen pendientes perfil/catálogos configurables, reprogramación y agenda PROFESSIONAL.
+
+2026-09-25 | LINT | ciclo inicial USER/ADMIN cross-repo | Maven/H2, pruebas del cliente REST, TypeScript y Vite | backend: 13 pruebas aprobadas; frontend: 7 pruebas, lint/typecheck y build de producción aprobados. El sandbox bloqueó inicialmente esbuild (`spawn EPERM`); el build se completó al ejecutar Vite con permiso revisado.
+
+2026-09-25 | LINT | verificación final del acople Stitch | cambios finales de citas-web | se añadieron pruebas para la bandeja ADMIN, la decisión con motivo, la cancelación y la consulta de historial; suite final del cliente: 9/9 pruebas, typecheck y build de producción aprobados.

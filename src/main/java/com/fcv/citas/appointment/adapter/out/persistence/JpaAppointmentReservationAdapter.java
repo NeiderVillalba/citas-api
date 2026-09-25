@@ -1,12 +1,14 @@
 package com.fcv.citas.appointment.adapter.out.persistence;
 
 import com.fcv.citas.appointment.adapter.out.persistence.entity.AppointmentEntity;
+import com.fcv.citas.appointment.adapter.out.persistence.entity.AppointmentHistoryEntity;
 import com.fcv.citas.appointment.adapter.out.persistence.entity.AppointmentSlotEntity;
 import com.fcv.citas.appointment.adapter.out.persistence.entity.AvailabilitySlotEntity;
 import com.fcv.citas.appointment.adapter.out.persistence.entity.ProfessionalEntity;
 import com.fcv.citas.appointment.adapter.out.persistence.entity.SpecialtyEntity;
 import com.fcv.citas.appointment.adapter.out.persistence.entity.VenueEntity;
 import com.fcv.citas.appointment.adapter.out.persistence.repository.AppointmentJpaRepository;
+import com.fcv.citas.appointment.adapter.out.persistence.repository.AppointmentHistoryJpaRepository;
 import com.fcv.citas.appointment.adapter.out.persistence.repository.AppointmentSlotJpaRepository;
 import com.fcv.citas.appointment.adapter.out.persistence.repository.AvailabilitySlotJpaRepository;
 import com.fcv.citas.appointment.adapter.out.persistence.repository.ProfessionalJpaRepository;
@@ -44,6 +46,7 @@ public class JpaAppointmentReservationAdapter implements AppointmentReservationP
     private final ProfessionalSpecialtyJpaRepository professionalSpecialties;
     private final AvailabilitySlotJpaRepository availabilitySlots;
     private final AppointmentJpaRepository appointments;
+    private final AppointmentHistoryJpaRepository appointmentHistory;
     private final AppointmentSlotJpaRepository appointmentSlots;
     private final Clock clock;
 
@@ -55,6 +58,7 @@ public class JpaAppointmentReservationAdapter implements AppointmentReservationP
             ProfessionalSpecialtyJpaRepository professionalSpecialties,
             AvailabilitySlotJpaRepository availabilitySlots,
             AppointmentJpaRepository appointments,
+            AppointmentHistoryJpaRepository appointmentHistory,
             AppointmentSlotJpaRepository appointmentSlots,
             Clock clock
     ) {
@@ -65,6 +69,7 @@ public class JpaAppointmentReservationAdapter implements AppointmentReservationP
         this.professionalSpecialties = professionalSpecialties;
         this.availabilitySlots = availabilitySlots;
         this.appointments = appointments;
+        this.appointmentHistory = appointmentHistory;
         this.appointmentSlots = appointmentSlots;
         this.clock = clock;
     }
@@ -128,6 +133,8 @@ public class JpaAppointmentReservationAdapter implements AppointmentReservationP
         } catch (DataIntegrityViolationException exception) {
             throw new SlotUnavailableException();
         }
+
+        appointmentHistory.save(new AppointmentHistoryEntity(appointment, status, user, "USER", clock.instant(), null));
 
         return new CreatedAppointment(appointment.getId(), appointment.getStatus());
     }

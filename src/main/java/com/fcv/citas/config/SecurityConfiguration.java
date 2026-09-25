@@ -39,6 +39,9 @@ public class SecurityConfiguration {
                         .requestMatchers(HttpMethod.POST, "/api/v1/auth/register", "/api/v1/auth/login",
                                 "/api/v1/auth/refresh", "/api/v1/auth/logout").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/appointments").hasRole("USER")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/appointments/*/cancel").hasRole("USER")
+                        .requestMatchers(HttpMethod.GET, "/api/v1/appointments/*/history").hasAnyRole("USER", "ADMIN")
+                        .requestMatchers("/api/v1/admin/appointments/**").hasRole("ADMIN")
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(resource -> resource.jwt(jwt -> jwt
                         .decoder(tokens.accessDecoder())

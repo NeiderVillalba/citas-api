@@ -8,6 +8,7 @@ import com.fcv.citas.appointment.adapter.out.persistence.entity.ProfessionalSpec
 import com.fcv.citas.appointment.adapter.out.persistence.entity.SpecialtyEntity;
 import com.fcv.citas.appointment.adapter.out.persistence.entity.VenueEntity;
 import com.fcv.citas.appointment.adapter.out.persistence.repository.AppointmentJpaRepository;
+import com.fcv.citas.appointment.adapter.out.persistence.repository.AppointmentHistoryJpaRepository;
 import com.fcv.citas.appointment.adapter.out.persistence.repository.AppointmentSlotJpaRepository;
 import com.fcv.citas.appointment.adapter.out.persistence.repository.AvailabilitySlotJpaRepository;
 import com.fcv.citas.appointment.adapter.out.persistence.repository.ProfessionalJpaRepository;
@@ -39,6 +40,7 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -56,12 +58,14 @@ class AppointmentReservationApiIntegrationTest {
     @Autowired ProfessionalSpecialtyJpaRepository professionalSpecialtyRepository;
     @Autowired AvailabilitySlotJpaRepository availabilitySlotRepository;
     @Autowired AppointmentJpaRepository appointmentRepository;
+    @Autowired AppointmentHistoryJpaRepository historyRepository;
     @Autowired AppointmentSlotJpaRepository appointmentSlotRepository;
     @Autowired JwtTokenAdapter tokenAdapter;
     @Autowired RefreshSessionJpaRepository refreshSessionRepository;
 
     private UserEntity firstUser;
     private UserEntity secondUser;
+    private UserEntity adminUser;
     private ProfessionalEntity professional;
     private SpecialtyEntity generalSpecialty;
     private SpecialtyEntity specializedSpecialty;
@@ -73,6 +77,7 @@ class AppointmentReservationApiIntegrationTest {
 
         firstUser = userRepository.save(user("Paciente Uno", "patient-one@example.test", "PATIENT-1"));
         secondUser = userRepository.save(user("Paciente Dos", "patient-two@example.test", "PATIENT-2"));
+        adminUser = userRepository.save(user("Admin Sintético", "admin@example.test", "ADMIN-1"));
         UserEntity professionalUser = userRepository.save(user("Profesional Uno", "professional@example.test", "PROF-1"));
         professional = professionalRepository.save(new ProfessionalEntity(professionalUser, true));
         venue = venueRepository.findById(1L).orElseThrow();
@@ -144,6 +149,117 @@ class AppointmentReservationApiIntegrationTest {
                 .doesNotHaveDuplicates();
     }
 
+    @Test
+    void availabilityRequiresCompleteFreeSlotsAndMineUsesJwtOwnership() throws Exception {
+        Instant firstStart = Instant.parse("2030-01-16T14:00:00Z");
+        availabilitySlotRepository.save(new AvailabilitySlotEntity(professional, venue, firstStart));
+        availabilitySlotRepository.save(new AvailabilitySlotEntity(professional, venue, firstStart.plusSeconds(1800)));
+        String availabilityUrl = "/api/v1/availability?specialtyId=%d&professionalId=%d&venueId=%d&from=2030-01-16T00:00:00Z&to=2030-01-17T00:00:00Z"
+                .formatted(specializedSpecialty.getId(), professional.getId(), venue.getId());
+
+        mockMvc.perform(get(availabilityUrl).header(HttpHeaders.AUTHORIZATION, authorization(firstUser)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0]").value(firstStart.toString()))
+                .andExpect(jsonPath("$.length()").value(1));
+
+        mockMvc.perform(post("/api/v1/appointments")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header(HttpHeaders.AUTHORIZATION, authorization(firstUser))
+                        .content(request(specializedSpecialty.getId(), firstStart, "SPECIALIZED")))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(get(availabilityUrl).header(HttpHeaders.AUTHORIZATION, authorization(secondUser)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(0));
+
+        mockMvc.perform(get("/api/v1/appointments/mine").header(HttpHeaders.AUTHORIZATION, authorization(firstUser)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].specialtyName").value("Cardiología sintética"))
+                .andExpect(jsonPath("$[0].venueId").value(venue.getId()));
+        mockMvc.perform(get("/api/v1/appointments/mine").header(HttpHeaders.AUTHORIZATION, authorization(secondUser)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(0));
+    }
+
+    @Test
+    void bookingQueriesRejectMissingJwtAndPastAppointments() throws Exception {
+        mockMvc.perform(get("/api/v1/specialties/active"))
+                .andExpect(status().isUnauthorized());
+        mockMvc.perform(post("/api/v1/appointments")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header(HttpHeaders.AUTHORIZATION, authorization(firstUser))
+                        .content(request(generalSpecialty.getId(), Instant.parse("2020-01-01T09:00:00Z"), "GENERAL")))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_APPOINTMENT_REQUEST"));
+    }
+
+    @Test
+    void adminApprovesAndPatientCanCancelWithHistoryAndSlotRelease() throws Exception {
+        Instant start = Instant.parse("2030-01-18T09:00:00Z");
+        availabilitySlotRepository.save(new AvailabilitySlotEntity(professional, venue, start));
+        availabilitySlotRepository.save(new AvailabilitySlotEntity(professional, venue, start.plusSeconds(1800)));
+        mockMvc.perform(post("/api/v1/appointments").contentType(MediaType.APPLICATION_JSON)
+                        .header(HttpHeaders.AUTHORIZATION, authorization(firstUser))
+                        .content(request(specializedSpecialty.getId(), start, "SPECIALIZED")))
+                .andExpect(status().isCreated());
+        long appointmentId = appointmentRepository.findAll().getFirst().getId();
+
+        mockMvc.perform(get("/api/v1/admin/appointments/pending")
+                        .header(HttpHeaders.AUTHORIZATION, authorization(firstUser)))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(get("/api/v1/admin/appointments/pending")
+                        .header(HttpHeaders.AUTHORIZATION, authorization(adminUser, "ADMIN")))
+                .andExpect(status().isOk()).andExpect(jsonPath("$[0].appointment.id").value(appointmentId));
+        mockMvc.perform(post("/api/v1/admin/appointments/{id}/decision", appointmentId)
+                        .header(HttpHeaders.AUTHORIZATION, authorization(adminUser, "ADMIN"))
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"approve\":true}"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("APPROVED"));
+        mockMvc.perform(post("/api/v1/admin/appointments/{id}/decision", appointmentId)
+                        .header(HttpHeaders.AUTHORIZATION, authorization(adminUser, "ADMIN"))
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"approve\":true}"))
+                .andExpect(status().isConflict());
+        mockMvc.perform(post("/api/v1/appointments/{id}/cancel", appointmentId)
+                        .header(HttpHeaders.AUTHORIZATION, authorization(secondUser)))
+                .andExpect(status().isNotFound());
+        mockMvc.perform(post("/api/v1/appointments/{id}/cancel", appointmentId)
+                        .header(HttpHeaders.AUTHORIZATION, authorization(firstUser)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("CANCELLED"));
+
+        assertThat(appointmentSlotRepository.findAll()).isEmpty();
+        assertThat(historyRepository.findByAppointmentIdOrderByChangedAtAscIdAsc(appointmentId))
+                .extracting(entry -> entry.getStatus().name()).containsExactly("REQUESTED", "APPROVED", "CANCELLED");
+    }
+
+    @Test
+    void adminRejectionRequiresReasonAndReleasesReservedSlots() throws Exception {
+        Instant start = Instant.parse("2030-01-19T09:00:00Z");
+        availabilitySlotRepository.save(new AvailabilitySlotEntity(professional, venue, start));
+        availabilitySlotRepository.save(new AvailabilitySlotEntity(professional, venue, start.plusSeconds(1800)));
+        mockMvc.perform(post("/api/v1/appointments").contentType(MediaType.APPLICATION_JSON)
+                        .header(HttpHeaders.AUTHORIZATION, authorization(firstUser))
+                        .content(request(specializedSpecialty.getId(), start, "SPECIALIZED")))
+                .andExpect(status().isCreated());
+        long appointmentId = appointmentRepository.findAll().getFirst().getId();
+        String decisionUrl = "/api/v1/admin/appointments/" + appointmentId + "/decision";
+
+        mockMvc.perform(post(decisionUrl).header(HttpHeaders.AUTHORIZATION, authorization(adminUser, "ADMIN"))
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"approve\":false}"))
+                .andExpect(status().isBadRequest());
+        assertThat(appointmentSlotRepository.findAll()).hasSize(2);
+
+        mockMvc.perform(post(decisionUrl).header(HttpHeaders.AUTHORIZATION, authorization(adminUser, "ADMIN"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"approve\":false,\"reason\":\"Agenda cerrada\"}"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("REJECTED"))
+                .andExpect(jsonPath("$.rejectionReason").value("Agenda cerrada"));
+        assertThat(appointmentSlotRepository.findAll()).isEmpty();
+        mockMvc.perform(get("/api/v1/appointments/mine").header(HttpHeaders.AUTHORIZATION, authorization(firstUser)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$[0].rejectionReason").value("Agenda cerrada"));
+        mockMvc.perform(get("/api/v1/appointments/{id}/history", appointmentId)
+                        .header(HttpHeaders.AUTHORIZATION, authorization(secondUser)))
+                .andExpect(status().isNotFound());
+    }
+
     private UserEntity user(String name, String email, String documentNumber) {
         return new UserEntity(name, "Sintético", "CC", documentNumber, email, "3000000000", "test-hash");
     }
@@ -161,13 +277,18 @@ class AppointmentReservationApiIntegrationTest {
     }
 
     private String authorization(UserEntity user) {
+        return authorization(user, "USER");
+    }
+
+    private String authorization(UserEntity user, String role) {
         var identity = new SessionIdentity(user.getId(), user.getFirstName(), user.getLastName(),
-                user.getEmail(), user.getPasswordHash(), List.of("USER"));
+                user.getEmail(), user.getPasswordHash(), List.of(role));
         return "Bearer " + tokenAdapter.createAccess(identity, Instant.now(), Instant.now().plusSeconds(900));
     }
 
     private void clearReservationData() {
         appointmentSlotRepository.deleteAll();
+        historyRepository.deleteAll();
         appointmentRepository.deleteAll();
         availabilitySlotRepository.deleteAll();
         professionalSpecialtyRepository.deleteAll();

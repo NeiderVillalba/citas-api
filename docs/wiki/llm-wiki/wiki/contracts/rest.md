@@ -2,7 +2,7 @@
 
 ## Estado
 
-El PRD exige una API REST JSON consumida directamente por el frontend. Los subcontratos de carga de planes, registro USER, reserva inicial y sesión descritos aquí son la base vigente. Los recursos de perfil, catálogos, agenda y ciclo de vida restante todavía requieren especificación antes de implementarse.
+El PRD exige una API REST JSON consumida directamente por el frontend. Los subcontratos de carga de planes, registro USER, reserva inicial, sesión y ciclo inicial de citas descritos aquí son la base vigente. Perfil, catálogos configurables, agenda profesional y reprogramación siguen pendientes.
 
 ## Sesión y autenticación
 
@@ -48,13 +48,23 @@ Los nombres de EPS y plan se exponen para mostrar el catálogo en el formulario,
 
 ## Consulta para el portal USER
 
-Los cuatro endpoints requieren access JWT con rol `USER`. Ninguno acepta un `userId` proporcionado por el cliente.
+Los endpoints de consulta del portal USER requieren access JWT con rol `USER`. Ninguno acepta un `userId` proporcionado por el cliente.
 
 - `GET /api/v1/specialties/active`: arreglo de `{ id, name, durationMinutes, appointmentType }`, ordenado por nombre. `appointmentType` es `GENERAL` para Medicina General y `SPECIALIZED` para el resto.
 - `GET /api/v1/venues`: catálogo fijo `{ id, code, name, address }` para HIC e ICV.
 - `GET /api/v1/professionals?specialtyId={id}`: arreglo de `{ id, firstName, lastName }` activos y asociados a la especialidad activa.
 - `GET /api/v1/availability?specialtyId={id}&professionalId={id}&venueId={id}&from={ISO-8601}&to={ISO-8601}`: arreglo ordenado de instantes ISO-8601. Solo incluye horarios futuros libres en la sede, con todos los slots consecutivos de la duración de la especialidad. El rango máximo es 31 días; los filtros inválidos reciben `400 INVALID_APPOINTMENT_REQUEST`. La disponibilidad es orientativa y se revalida al reservar.
-- `GET /api/v1/appointments/mine`: arreglo ordenado por fecha descendente de `{ id, professionalId, professionalName, specialtyId, specialtyName, durationMinutes, venueId, venueName, venueAddress, startsAt, appointmentType, status }` perteneciente al JWT. Los campos de sede pueden ser `null` en citas anteriores a la migración V4.
+- `GET /api/v1/appointments/mine`: arreglo ordenado por fecha descendente de `{ id, professionalId, professionalName, specialtyId, specialtyName, durationMinutes, venueId, venueName, venueAddress, startsAt, appointmentType, status, rejectionReason }` perteneciente al JWT. `status` puede ser `APPROVED`, `REQUESTED`, `REJECTED`, `CANCELLED`, `COMPLETED` o `NO_SHOW`. `rejectionReason` es `null` salvo en una cita rechazada. Los campos de sede pueden ser `null` en citas anteriores a la migración V4.
+
+## Decisión, cancelación e historial de citas
+
+- `GET /api/v1/admin/appointments/pending`: requiere rol `ADMIN`; devuelve citas especializadas `REQUESTED`, ordenadas por inicio ascendente, con forma `{ appointment: MyAppointment, patientName }`.
+- `POST /api/v1/admin/appointments/{id}/decision`: requiere rol `ADMIN`. Cuerpo `{ "approve": boolean, "reason"?: string }`. Solo permite decidir solicitudes futuras `REQUESTED`. Aprobar cambia a `APPROVED` y conserva la reserva. Rechazar requiere un motivo no vacío de máximo 1000 caracteres, cambia a `REJECTED`, lo devuelve en `rejectionReason` y libera los slots. Responde `200` con `MyAppointment` actualizado.
+- `POST /api/v1/appointments/{id}/cancel`: requiere rol `USER` y ownership. Solo cancela citas `APPROVED` o `REQUESTED` futuras. Cambia a `CANCELLED`, libera los slots y responde `200` con `{ "id": number, "status": "CANCELLED" }`.
+- `GET /api/v1/appointments/{id}/history`: requiere rol `USER` propietario o `ADMIN`. Responde con eventos ordenados `{ id, status, actorId, source, changedAt, reason }`; `source` es `SYSTEM`, `USER` o `ADMIN`. El evento inicial también se registra.
+- Decisión o cancelación fuera de transición válida: `409 INVALID_APPOINTMENT_TRANSITION`. Rechazo sin motivo: `400 INVALID_APPOINTMENT_REQUEST`. Cita inexistente o fuera de ownership: `404 APPOINTMENT_NOT_FOUND` para no revelar registros de otros usuarios. Rol insuficiente: `403`; sesión ausente o inválida: `401`.
+
+La migración Flyway V5 amplía los estados permitidos, agrega `rejection_reason` e introduce `appointment_history`, incluido el registro inicial de citas existentes. `COMPLETED` y `NO_SHOW` están permitidos en persistencia para la evolución del PRD; sus transiciones profesionales aún no están expuestas por REST.
 
 La migración V4 agrega el catálogo de sedes y su vínculo con slots/citas. Los slots anteriores quedan sin sede para no atribuirles una ubicación inventada; solo los slots nuevos con sede se ofrecen para reservar.
 

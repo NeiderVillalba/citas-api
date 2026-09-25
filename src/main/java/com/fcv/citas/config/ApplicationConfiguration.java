@@ -2,7 +2,9 @@ package com.fcv.citas.config;
 
 import com.fcv.citas.appointment.application.CreateAppointmentService;
 import com.fcv.citas.appointment.application.BookingQueryService;
+import com.fcv.citas.appointment.application.AppointmentLifecycleService;
 import com.fcv.citas.appointment.application.port.out.BookingQueryPort;
+import com.fcv.citas.appointment.application.port.out.AppointmentLifecyclePort;
 import com.fcv.citas.appointment.application.port.out.AppointmentReservationPort;
 import com.fcv.citas.user.application.GetActivePlansService;
 import com.fcv.citas.user.application.AuthSessionService;
@@ -30,6 +32,11 @@ public class ApplicationConfiguration {
     @Bean
     BookingQueryService bookingQueryService(BookingQueryPort bookingQueryPort, Clock clock) {
         return new BookingQueryService(bookingQueryPort, clock);
+    }
+
+    @Bean
+    AppointmentLifecycleService appointmentLifecycleService(AppointmentLifecyclePort lifecycle) {
+        return new AppointmentLifecycleService(lifecycle);
     }
 
     @Bean

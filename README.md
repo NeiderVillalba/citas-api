@@ -32,10 +32,16 @@ mvn test
 - GET /api/v1/specialties/active, /api/v1/venues, /api/v1/professionals, /api/v1/availability
 - GET /api/v1/appointments/mine
 - POST /api/v1/appointments
+- POST /api/v1/appointments/{id}/cancel
+- GET /api/v1/appointments/{id}/history
+- GET /api/v1/admin/appointments/pending
+- POST /api/v1/admin/appointments/{id}/decision
 
-El contrato y sus errores están documentados en docs/wiki/llm-wiki/wiki/contracts/rest.md.
+El ciclo inicial de citas admite aprobación/rechazo ADMIN, cancelación USER e historial auditable. El contrato y sus errores están documentados en docs/wiki/llm-wiki/wiki/contracts/rest.md.
 
 Para recorrer el flujo de reserva en un entorno local vacío, define `DEMO_SEED=true`. El arranque crea dos profesionales y slots sintéticos para los siguientes días hábiles. Sus contraseñas se generan aleatoriamente y no se muestran. Mantén esta opción desactivada fuera del laboratorio.
+
+Para habilitar la bandeja administrativa local, configura `ADMIN_BOOTSTRAP_EMAIL` y `ADMIN_BOOTSTRAP_PASSWORD` (mínimo 12 caracteres) en variables de entorno. La cuenta se crea una vez con rol ADMIN y contraseña BCrypt; no hay credenciales por defecto.
 
 ## Documentación compartida
 - `docs/wiki/scrum/`: épicas/HU generadas con la Skill Scrum.
