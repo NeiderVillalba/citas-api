@@ -18,4 +18,13 @@ public final class AppointmentTransitions {
         }
         return AppointmentStatus.CANCELLED;
     }
+
+    public static AppointmentStatus close(AppointmentStatus current, Instant startsAt, Instant now,
+                                          AppointmentStatus outcome) {
+        if (current != AppointmentStatus.APPROVED || startsAt.isAfter(now)
+                || (outcome != AppointmentStatus.COMPLETED && outcome != AppointmentStatus.NO_SHOW)) {
+            throw new InvalidAppointmentTransitionException("Solo se puede cerrar una cita aprobada que ya inició.");
+        }
+        return outcome;
+    }
 }

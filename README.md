@@ -36,6 +36,8 @@ mvn test
 - GET /api/v1/appointments/{id}/history
 - GET /api/v1/admin/appointments/pending
 - POST /api/v1/admin/appointments/{id}/decision
+- GET /api/v1/professional/appointments
+- POST /api/v1/professional/appointments/{id}/outcome
 
 El ciclo inicial de citas admite aprobación/rechazo ADMIN, cancelación USER e historial auditable. El contrato y sus errores están documentados en docs/wiki/llm-wiki/wiki/contracts/rest.md.
 

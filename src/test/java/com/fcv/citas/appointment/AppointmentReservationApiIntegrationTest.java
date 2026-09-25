@@ -7,6 +7,8 @@ import com.fcv.citas.appointment.adapter.out.persistence.entity.ProfessionalEnti
 import com.fcv.citas.appointment.adapter.out.persistence.entity.ProfessionalSpecialtyEntity;
 import com.fcv.citas.appointment.adapter.out.persistence.entity.SpecialtyEntity;
 import com.fcv.citas.appointment.adapter.out.persistence.entity.VenueEntity;
+import com.fcv.citas.appointment.domain.AppointmentStatus;
+import com.fcv.citas.appointment.domain.AppointmentType;
 import com.fcv.citas.appointment.adapter.out.persistence.repository.AppointmentJpaRepository;
 import com.fcv.citas.appointment.adapter.out.persistence.repository.AppointmentHistoryJpaRepository;
 import com.fcv.citas.appointment.adapter.out.persistence.repository.AppointmentSlotJpaRepository;
@@ -66,6 +68,7 @@ class AppointmentReservationApiIntegrationTest {
     private UserEntity firstUser;
     private UserEntity secondUser;
     private UserEntity adminUser;
+    private UserEntity professionalUser;
     private ProfessionalEntity professional;
     private SpecialtyEntity generalSpecialty;
     private SpecialtyEntity specializedSpecialty;
@@ -78,7 +81,7 @@ class AppointmentReservationApiIntegrationTest {
         firstUser = userRepository.save(user("Paciente Uno", "patient-one@example.test", "PATIENT-1"));
         secondUser = userRepository.save(user("Paciente Dos", "patient-two@example.test", "PATIENT-2"));
         adminUser = userRepository.save(user("Admin Sintético", "admin@example.test", "ADMIN-1"));
-        UserEntity professionalUser = userRepository.save(user("Profesional Uno", "professional@example.test", "PROF-1"));
+        professionalUser = userRepository.save(user("Profesional Uno", "professional@example.test", "PROF-1"));
         professional = professionalRepository.save(new ProfessionalEntity(professionalUser, true));
         venue = venueRepository.findById(1L).orElseThrow();
         generalSpecialty = specialtyRepository.save(new SpecialtyEntity("Medicina General", 30, true));
@@ -258,6 +261,66 @@ class AppointmentReservationApiIntegrationTest {
         mockMvc.perform(get("/api/v1/appointments/{id}/history", appointmentId)
                         .header(HttpHeaders.AUTHORIZATION, authorization(secondUser)))
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void professionalAgendaIsOwnedAndPastApprovedAppointmentsCanBeClosedOnce() throws Exception {
+        Instant past = Instant.parse("2020-01-20T14:00:00Z");
+        AppointmentEntity ownAppointment = appointmentRepository.save(new AppointmentEntity(firstUser, professional,
+                generalSpecialty, venue, past, AppointmentType.GENERAL, AppointmentStatus.APPROVED));
+
+        UserEntity anotherProfessionalUser = userRepository.save(user("Profesional Dos", "professional-two@example.test", "PROF-2"));
+        ProfessionalEntity anotherProfessional = professionalRepository.save(new ProfessionalEntity(anotherProfessionalUser, true));
+        AppointmentEntity otherAppointment = appointmentRepository.save(new AppointmentEntity(firstUser, anotherProfessional,
+                generalSpecialty, venue, past, AppointmentType.GENERAL, AppointmentStatus.APPROVED));
+        Instant future = Instant.now().plusSeconds(86_400);
+        AppointmentEntity futureAppointment = appointmentRepository.save(new AppointmentEntity(firstUser, professional,
+                generalSpecialty, venue, future, AppointmentType.GENERAL, AppointmentStatus.APPROVED));
+
+        String range = "/api/v1/professional/appointments?from=2020-01-01T00:00:00Z&to=2020-02-01T00:00:00Z";
+        mockMvc.perform(get(range).header(HttpHeaders.AUTHORIZATION, authorization(firstUser)))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(get(range).header(HttpHeaders.AUTHORIZATION, authorization(professionalUser, "PROFESSIONAL")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].id").value(ownAppointment.getId()))
+                .andExpect(jsonPath("$[0].patientName").value("Paciente Uno Sintético"));
+        mockMvc.perform(get(range + "&venueId=" + venue.getId())
+                        .header(HttpHeaders.AUTHORIZATION, authorization(professionalUser, "PROFESSIONAL")))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(1));
+        mockMvc.perform(get(range + "&venueId=2")
+                        .header(HttpHeaders.AUTHORIZATION, authorization(professionalUser, "PROFESSIONAL")))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(0));
+        mockMvc.perform(get("/api/v1/professional/appointments?from=2020-01-01T00:00:00Z&to=2020-03-01T00:00:00Z")
+                        .header(HttpHeaders.AUTHORIZATION, authorization(professionalUser, "PROFESSIONAL")))
+                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("INVALID_APPOINTMENT_REQUEST"));
+
+        mockMvc.perform(post("/api/v1/professional/appointments/{id}/outcome", ownAppointment.getId())
+                        .header(HttpHeaders.AUTHORIZATION, authorization(professionalUser, "PROFESSIONAL"))
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"outcome\":\"COMPLETED\"}"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("COMPLETED"));
+        mockMvc.perform(post("/api/v1/professional/appointments/{id}/outcome", ownAppointment.getId())
+                        .header(HttpHeaders.AUTHORIZATION, authorization(professionalUser, "PROFESSIONAL"))
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"outcome\":\"NO_SHOW\"}"))
+                .andExpect(status().isConflict());
+        mockMvc.perform(post("/api/v1/professional/appointments/{id}/outcome", futureAppointment.getId())
+                        .header(HttpHeaders.AUTHORIZATION, authorization(professionalUser, "PROFESSIONAL"))
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"outcome\":\"NO_SHOW\"}"))
+                .andExpect(status().isConflict());
+        mockMvc.perform(post("/api/v1/professional/appointments/{id}/outcome", ownAppointment.getId())
+                        .header(HttpHeaders.AUTHORIZATION, authorization(anotherProfessionalUser, "PROFESSIONAL"))
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"outcome\":\"NO_SHOW\"}"))
+                .andExpect(status().isNotFound());
+
+        assertThat(appointmentRepository.findById(ownAppointment.getId()).orElseThrow().getStatus())
+                .isEqualTo(AppointmentStatus.COMPLETED);
+        mockMvc.perform(get(range).header(HttpHeaders.AUTHORIZATION, authorization(professionalUser, "PROFESSIONAL")))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(0));
+        assertThat(appointmentRepository.findById(otherAppointment.getId()).orElseThrow().getStatus())
+                .isEqualTo(AppointmentStatus.APPROVED);
+        assertThat(historyRepository.findByAppointmentIdOrderByChangedAtAscIdAsc(ownAppointment.getId()))
+                .extracting(entry -> entry.getSource() + ":" + entry.getStatus())
+                .containsExactly("PROFESSIONAL:COMPLETED");
     }
 
     private UserEntity user(String name, String email, String documentNumber) {

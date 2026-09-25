@@ -4,7 +4,7 @@
 
 - Última actualización: 2026-09-25
 - Alcance: coordinación global de `citas-api` y `citas-web`
-- Estado de implementación: portal USER Stitch/React conectado a registro, sesión, búsqueda/reserva, cancelación e historial; bandeja ADMIN para aprobación/rechazo; seed sintético local opcional. Perfil, catálogos configurables, reprogramación y agenda PROFESSIONAL siguen pendientes.
+- Estado de implementación: portal USER Stitch/React conectado a registro, sesión, búsqueda/reserva, cancelación e historial; bandeja ADMIN; consulta y cierre PROFESSIONAL por REST/UI; seed sintético local opcional. CRUD de profesionales/catálogos, gestión de bloques, perfil, reprogramación y automatizaciones n8n/MCP siguen pendientes.
 
 ## Fuentes RAW vigentes
 

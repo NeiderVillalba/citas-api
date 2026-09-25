@@ -11,8 +11,9 @@ La aplicación debe cubrir registro, autenticación JWT con refresh, perfil y af
 - `citas-api` implementa consulta de planes activos y registro USER con afiliación opcional persistida por FK.
 - `citas-api` implementa reservas por slots: la cita general nace `APPROVED`, la especializada `REQUESTED`, y ningún slot puede asociarse a dos citas.
 - `citas-api` permite a ADMIN aprobar/rechazar solicitudes especializadas; el rechazo exige motivo y libera slots. USER puede cancelar citas futuras propias. Todos los cambios iniciales se registran en `appointment_history`.
-- `citas-web` usa React, TypeScript y Vite; la interfaz importada desde Stitch se conecta a la API para planes, citas y ciclo inicial. La bandeja ADMIN mantiene el sistema visual Stitch.
-- Perfil/afiliación editable, catálogos configurables, reprogramación y agenda PROFESSIONAL aún requieren contrato e implementación.
+- `citas-api` limita la agenda a citas aprobadas del profesional autenticado y permite cerrar citas iniciadas como `COMPLETED` o `NO_SHOW`, auditando fuente `PROFESSIONAL`.
+- `citas-web` usa React, TypeScript y Vite; Stitch se conecta a la API para planes, citas y ciclo inicial. Bandeja ADMIN y agenda PROFESSIONAL conservan el mismo sistema visual.
+- CRUD de profesionales/catálogos, bloques de disponibilidad, perfil editable, reprogramación y automatizaciones n8n/MCP aún requieren implementación/ejecución.
 - Ambos repositorios usan `develop` como rama de trabajo.
 
 ## Verificación del slice de afiliación

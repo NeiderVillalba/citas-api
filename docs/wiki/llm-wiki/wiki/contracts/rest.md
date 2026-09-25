@@ -61,10 +61,17 @@ Los endpoints de consulta del portal USER requieren access JWT con rol `USER`. N
 - `GET /api/v1/admin/appointments/pending`: requiere rol `ADMIN`; devuelve citas especializadas `REQUESTED`, ordenadas por inicio ascendente, con forma `{ appointment: MyAppointment, patientName }`.
 - `POST /api/v1/admin/appointments/{id}/decision`: requiere rol `ADMIN`. Cuerpo `{ "approve": boolean, "reason"?: string }`. Solo permite decidir solicitudes futuras `REQUESTED`. Aprobar cambia a `APPROVED` y conserva la reserva. Rechazar requiere un motivo no vacío de máximo 1000 caracteres, cambia a `REJECTED`, lo devuelve en `rejectionReason` y libera los slots. Responde `200` con `MyAppointment` actualizado.
 - `POST /api/v1/appointments/{id}/cancel`: requiere rol `USER` y ownership. Solo cancela citas `APPROVED` o `REQUESTED` futuras. Cambia a `CANCELLED`, libera los slots y responde `200` con `{ "id": number, "status": "CANCELLED" }`.
-- `GET /api/v1/appointments/{id}/history`: requiere rol `USER` propietario o `ADMIN`. Responde con eventos ordenados `{ id, status, actorId, source, changedAt, reason }`; `source` es `SYSTEM`, `USER` o `ADMIN`. El evento inicial también se registra.
+- `GET /api/v1/appointments/{id}/history`: requiere rol `USER` propietario o `ADMIN`. Responde con eventos ordenados `{ id, status, actorId, source, changedAt, reason }`; `source` es `SYSTEM`, `USER`, `ADMIN` o `PROFESSIONAL`. El evento inicial también se registra.
 - Decisión o cancelación fuera de transición válida: `409 INVALID_APPOINTMENT_TRANSITION`. Rechazo sin motivo: `400 INVALID_APPOINTMENT_REQUEST`. Cita inexistente o fuera de ownership: `404 APPOINTMENT_NOT_FOUND` para no revelar registros de otros usuarios. Rol insuficiente: `403`; sesión ausente o inválida: `401`.
 
-La migración Flyway V5 amplía los estados permitidos, agrega `rejection_reason` e introduce `appointment_history`, incluido el registro inicial de citas existentes. `COMPLETED` y `NO_SHOW` están permitidos en persistencia para la evolución del PRD; sus transiciones profesionales aún no están expuestas por REST.
+## Agenda y cierre PROFESSIONAL
+
+- `GET /api/v1/professional/appointments?from={ISO-8601}&to={ISO-8601}&venueId={id?}`: requiere rol `PROFESSIONAL`. `from` y `to` son obligatorios; el intervalo debe ser positivo y máximo 31 días. Devuelve solo citas `APPROVED` del profesional autenticado y, si se envía, de la sede filtrada: `{ id, patientName, specialtyName, venueName, startsAt, durationMinutes, status }`. No acepta el ID de profesional desde el cliente.
+- `GET /api/v1/venues` acepta roles `USER` y `PROFESSIONAL` para poblar filtros.
+- `POST /api/v1/professional/appointments/{id}/outcome`: requiere rol `PROFESSIONAL`; cuerpo `{ "outcome": "COMPLETED" | "NO_SHOW" }`. Solo permite cerrar citas propias `APPROVED` que ya iniciaron. Registra actor, fecha y fuente `PROFESSIONAL`; responde `{ id, status }`.
+- Rango inválido: `400 INVALID_APPOINTMENT_REQUEST`. Cita ajena/inexistente: `404 APPOINTMENT_NOT_FOUND`. Cita futura, terminal o outcome inválido: `409 INVALID_APPOINTMENT_TRANSITION`.
+
+Las migraciones Flyway V5 y V6 amplían los estados permitidos, agregan `rejection_reason`, introducen `appointment_history` y aceptan auditoría `PROFESSIONAL`, incluido el registro inicial de citas existentes.
 
 La migración V4 agrega el catálogo de sedes y su vínculo con slots/citas. Los slots anteriores quedan sin sede para no atribuirles una ubicación inventada; solo los slots nuevos con sede se ofrecen para reservar.
 

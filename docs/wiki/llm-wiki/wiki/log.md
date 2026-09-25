@@ -27,3 +27,7 @@
 2026-09-25 | LINT | verificación final del acople Stitch | cambios finales de citas-web | se añadieron pruebas para la bandeja ADMIN, la decisión con motivo, la cancelación y la consulta de historial; suite final del cliente: 9/9 pruebas, typecheck y build de producción aprobados.
 
 2026-09-25 | LEARN | gates de verificación S3 | Guía S2–S6, seguridad y ejecución de hooks en ambos repos | se versionaron hooks pre-commit con bloqueo de `.env`/credenciales y verificaciones; quedó registrada evidencia FAIL para fixture sintético y PASS para API (13 pruebas Maven) y web (9 pruebas + typecheck). Ver [evidencia S3](../../../verification/S3-quality-gates.md).
+
+2026-09-25 | LEARN | agenda/cierre PROFESSIONAL | PRD RF-16/RF-17, contrato REST, código y pruebas cross-repo | se añadió consulta de agenda por fechas/sede y cierre `COMPLETED`/`NO_SHOW` con ownership y auditoría; UI Stitch incluye filtros y acciones de resultado. Backend migra fuente de auditoría V6; pendiente crear/gestionar perfiles profesionales y sus bloques.
+
+2026-09-25 | QUERY | disponibilidad de n8n/MCP | registro de herramientas y recursos MCP habilitados para esta ejecución | no se encontró herramienta n8n ni servidor/recurso MCP de n8n conectado. No se puede inspeccionar ni ejecutar la instancia del trainer desde este workspace; los JSON/workflows aún pueden versionarse, pero su ejecución MCP requiere acceso externo.

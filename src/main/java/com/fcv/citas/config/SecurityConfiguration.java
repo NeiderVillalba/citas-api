@@ -34,14 +34,17 @@ public class SecurityConfiguration {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/plans/active").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/v1/specialties/active", "/api/v1/venues", "/api/v1/professionals",
+                        .requestMatchers(HttpMethod.GET, "/api/v1/specialties/active", "/api/v1/professionals",
                                 "/api/v1/availability", "/api/v1/appointments/mine").hasRole("USER")
+                        .requestMatchers(HttpMethod.GET, "/api/v1/venues").hasAnyRole("USER", "PROFESSIONAL")
                         .requestMatchers(HttpMethod.POST, "/api/v1/auth/register", "/api/v1/auth/login",
                                 "/api/v1/auth/refresh", "/api/v1/auth/logout").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/appointments").hasRole("USER")
                         .requestMatchers(HttpMethod.POST, "/api/v1/appointments/*/cancel").hasRole("USER")
                         .requestMatchers(HttpMethod.GET, "/api/v1/appointments/*/history").hasAnyRole("USER", "ADMIN")
                         .requestMatchers("/api/v1/admin/appointments/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/v1/professional/appointments").hasRole("PROFESSIONAL")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/professional/appointments/*/outcome").hasRole("PROFESSIONAL")
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(resource -> resource.jwt(jwt -> jwt
                         .decoder(tokens.accessDecoder())
