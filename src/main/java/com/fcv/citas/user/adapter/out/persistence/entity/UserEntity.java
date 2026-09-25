@@ -56,6 +56,8 @@ public class UserEntity {
     }
 
     public Long getId() { return id; }
+    public String getFirstName() { return firstName; }
+    public String getLastName() { return lastName; }
     public String getPasswordHash() { return passwordHash; }
     public String getEmail() { return email; }
 }

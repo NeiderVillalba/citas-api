@@ -33,6 +33,7 @@ public class SpecialtyEntity {
     }
 
     public Long getId() { return id; }
+    public String getName() { return name; }
     public int getDurationMinutes() { return durationMinutes; }
     public boolean isActive() { return active; }
 }

@@ -7,13 +7,13 @@ import jakarta.validation.constraints.NotNull;
 import java.time.Instant;
 
 public record CreateAppointmentRequest(
-        @NotNull Long userId,
         @NotNull Long professionalId,
         @NotNull Long specialtyId,
+        @NotNull Long venueId,
         @NotNull Instant startsAt,
         @NotNull AppointmentType appointmentType
 ) {
-    CreateAppointmentCommand toCommand() {
-        return new CreateAppointmentCommand(userId, professionalId, specialtyId, startsAt, appointmentType);
+    CreateAppointmentCommand toCommand(Long userId) {
+        return new CreateAppointmentCommand(userId, professionalId, specialtyId, venueId, startsAt, appointmentType);
     }
 }

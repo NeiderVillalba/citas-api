@@ -5,12 +5,14 @@ import com.fcv.citas.appointment.adapter.out.persistence.entity.AppointmentSlotE
 import com.fcv.citas.appointment.adapter.out.persistence.entity.AvailabilitySlotEntity;
 import com.fcv.citas.appointment.adapter.out.persistence.entity.ProfessionalEntity;
 import com.fcv.citas.appointment.adapter.out.persistence.entity.SpecialtyEntity;
+import com.fcv.citas.appointment.adapter.out.persistence.entity.VenueEntity;
 import com.fcv.citas.appointment.adapter.out.persistence.repository.AppointmentJpaRepository;
 import com.fcv.citas.appointment.adapter.out.persistence.repository.AppointmentSlotJpaRepository;
 import com.fcv.citas.appointment.adapter.out.persistence.repository.AvailabilitySlotJpaRepository;
 import com.fcv.citas.appointment.adapter.out.persistence.repository.ProfessionalJpaRepository;
 import com.fcv.citas.appointment.adapter.out.persistence.repository.ProfessionalSpecialtyJpaRepository;
 import com.fcv.citas.appointment.adapter.out.persistence.repository.SpecialtyJpaRepository;
+import com.fcv.citas.appointment.adapter.out.persistence.repository.VenueJpaRepository;
 import com.fcv.citas.appointment.application.port.out.AppointmentReservationPort;
 import com.fcv.citas.appointment.domain.AppointmentStatus;
 import com.fcv.citas.appointment.domain.AppointmentType;
@@ -25,6 +27,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
+import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
 import java.util.Set;
@@ -37,38 +40,55 @@ public class JpaAppointmentReservationAdapter implements AppointmentReservationP
     private final UserJpaRepository users;
     private final ProfessionalJpaRepository professionals;
     private final SpecialtyJpaRepository specialties;
+    private final VenueJpaRepository venues;
     private final ProfessionalSpecialtyJpaRepository professionalSpecialties;
     private final AvailabilitySlotJpaRepository availabilitySlots;
     private final AppointmentJpaRepository appointments;
     private final AppointmentSlotJpaRepository appointmentSlots;
+    private final Clock clock;
 
     public JpaAppointmentReservationAdapter(
             UserJpaRepository users,
             ProfessionalJpaRepository professionals,
             SpecialtyJpaRepository specialties,
+            VenueJpaRepository venues,
             ProfessionalSpecialtyJpaRepository professionalSpecialties,
             AvailabilitySlotJpaRepository availabilitySlots,
             AppointmentJpaRepository appointments,
-            AppointmentSlotJpaRepository appointmentSlots
+            AppointmentSlotJpaRepository appointmentSlots,
+            Clock clock
     ) {
         this.users = users;
         this.professionals = professionals;
         this.specialties = specialties;
+        this.venues = venues;
         this.professionalSpecialties = professionalSpecialties;
         this.availabilitySlots = availabilitySlots;
         this.appointments = appointments;
         this.appointmentSlots = appointmentSlots;
+        this.clock = clock;
     }
 
     @Override
     @Transactional
     public CreatedAppointment reserve(CreateAppointmentCommand command) {
+        if (command.startsAt() == null || !command.startsAt().isAfter(clock.instant())) {
+            throw new InvalidAppointmentRequestException("La cita debe estar en el futuro.");
+        }
         UserEntity user = users.findById(command.userId())
                 .orElseThrow(() -> new InvalidAppointmentRequestException("El usuario no existe."));
         ProfessionalEntity professional = professionals.findByIdAndActiveTrue(command.professionalId())
                 .orElseThrow(() -> new InvalidAppointmentRequestException("El profesional no está disponible."));
         SpecialtyEntity specialty = specialties.findByIdAndActiveTrue(command.specialtyId())
                 .orElseThrow(() -> new InvalidAppointmentRequestException("La especialidad no está disponible."));
+        VenueEntity venue = venues.findById(command.venueId())
+                .orElseThrow(() -> new InvalidAppointmentRequestException("La sede no existe."));
+
+        AppointmentType expectedType = "Medicina General".equalsIgnoreCase(specialty.getName())
+                ? AppointmentType.GENERAL : AppointmentType.SPECIALIZED;
+        if (command.appointmentType() != expectedType) {
+            throw new InvalidAppointmentRequestException("El tipo de cita no corresponde a la especialidad.");
+        }
 
         if (!professionalSpecialties.existsByProfessionalIdAndSpecialtyId(professional.getId(), specialty.getId())) {
             throw new InvalidAppointmentRequestException("El profesional no atiende la especialidad seleccionada.");
@@ -76,7 +96,7 @@ public class JpaAppointmentReservationAdapter implements AppointmentReservationP
 
         List<Instant> expectedStarts = expectedSlotStarts(command.startsAt(), specialty.getDurationMinutes());
         List<AvailabilitySlotEntity> lockedSlots = availabilitySlots
-                .lockByProfessionalIdAndStartsAtIn(professional.getId(), expectedStarts);
+                .lockByProfessionalIdAndVenueIdAndStartsAtIn(professional.getId(), venue.getId(), expectedStarts);
 
         if (!matchesExactly(lockedSlots, expectedStarts)) {
             throw new SlotUnavailableException();
@@ -94,6 +114,7 @@ public class JpaAppointmentReservationAdapter implements AppointmentReservationP
                 user,
                 professional,
                 specialty,
+                venue,
                 command.startsAt(),
                 command.appointmentType(),
                 status

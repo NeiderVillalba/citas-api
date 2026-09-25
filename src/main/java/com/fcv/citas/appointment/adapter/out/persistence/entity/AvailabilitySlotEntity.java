@@ -22,17 +22,23 @@ public class AvailabilitySlotEntity {
     @JoinColumn(name = "professional_id", nullable = false)
     private ProfessionalEntity professional;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "venue_id")
+    private VenueEntity venue;
+
     @jakarta.persistence.Column(name = "starts_at", nullable = false)
     private Instant startsAt;
 
     protected AvailabilitySlotEntity() {
     }
 
-    public AvailabilitySlotEntity(ProfessionalEntity professional, Instant startsAt) {
+    public AvailabilitySlotEntity(ProfessionalEntity professional, VenueEntity venue, Instant startsAt) {
         this.professional = professional;
+        this.venue = venue;
         this.startsAt = startsAt;
     }
 
     public Long getId() { return id; }
+    public VenueEntity getVenue() { return venue; }
     public Instant getStartsAt() { return startsAt; }
 }

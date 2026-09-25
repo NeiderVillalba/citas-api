@@ -36,6 +36,10 @@ public class AppointmentEntity {
     @JoinColumn(name = "specialty_id", nullable = false)
     private SpecialtyEntity specialty;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "venue_id")
+    private VenueEntity venue;
+
     @Column(name = "starts_at", nullable = false)
     private Instant startsAt;
 
@@ -54,6 +58,7 @@ public class AppointmentEntity {
             UserEntity user,
             ProfessionalEntity professional,
             SpecialtyEntity specialty,
+            VenueEntity venue,
             Instant startsAt,
             AppointmentType appointmentType,
             AppointmentStatus status
@@ -61,11 +66,18 @@ public class AppointmentEntity {
         this.user = user;
         this.professional = professional;
         this.specialty = specialty;
+        this.venue = venue;
         this.startsAt = startsAt;
         this.appointmentType = appointmentType;
         this.status = status;
     }
 
     public Long getId() { return id; }
+    public UserEntity getUser() { return user; }
+    public ProfessionalEntity getProfessional() { return professional; }
+    public SpecialtyEntity getSpecialty() { return specialty; }
+    public VenueEntity getVenue() { return venue; }
+    public Instant getStartsAt() { return startsAt; }
+    public AppointmentType getAppointmentType() { return appointmentType; }
     public AppointmentStatus getStatus() { return status; }
 }

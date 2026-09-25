@@ -2,9 +2,9 @@
 
 ## Estado
 
-- Última actualización: 2026-09-23
+- Última actualización: 2026-09-25
 - Alcance: coordinación global de `citas-api` y `citas-web`
-- Estado de implementación: registro USER con afiliación opcional, frontend React/Vite integrado y reserva backend con exclusión de slots
+- Estado de implementación: portal USER Stitch/React acoplado a registro, sesión, catálogos, disponibilidad por sede, reserva y Mis citas; seed sintético local opcional. ADMIN/PROFESSIONAL y ciclo de vida avanzado pendientes.
 
 ## Fuentes RAW vigentes
 

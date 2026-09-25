@@ -34,5 +34,6 @@ public class ProfessionalEntity {
     }
 
     public Long getId() { return id; }
+    public UserEntity getUser() { return user; }
     public boolean isActive() { return active; }
 }

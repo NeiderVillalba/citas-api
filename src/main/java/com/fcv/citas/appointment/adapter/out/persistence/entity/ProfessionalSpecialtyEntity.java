@@ -32,4 +32,6 @@ public class ProfessionalSpecialtyEntity {
         this.professional = professional;
         this.specialty = specialty;
     }
+
+    public ProfessionalEntity getProfessional() { return professional; }
 }

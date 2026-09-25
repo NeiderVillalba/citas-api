@@ -10,6 +10,7 @@ import com.fcv.citas.user.adapter.out.persistence.repository.EpsPlanJpaRepositor
 import com.fcv.citas.user.adapter.out.persistence.repository.UserAffiliationJpaRepository;
 import com.fcv.citas.user.adapter.out.persistence.repository.UserJpaRepository;
 import com.fcv.citas.user.adapter.out.persistence.repository.UserRoleJpaRepository;
+import com.fcv.citas.user.adapter.out.persistence.repository.RefreshSessionJpaRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,6 +40,7 @@ class RegistrationApiIntegrationTest {
     @Autowired EpsPlanJpaRepository planRepository;
     @Autowired UserJpaRepository userRepository;
     @Autowired UserRoleJpaRepository userRoleRepository;
+    @Autowired RefreshSessionJpaRepository refreshSessionRepository;
     @Autowired UserAffiliationJpaRepository affiliationRepository;
     @Autowired PasswordEncoder passwordEncoder;
     @Autowired JdbcTemplate jdbcTemplate;
@@ -49,6 +51,7 @@ class RegistrationApiIntegrationTest {
     @BeforeEach
     void setUp() {
         affiliationRepository.deleteAll();
+        refreshSessionRepository.deleteAll();
         userRoleRepository.deleteAll();
         userRepository.deleteAll();
         planRepository.deleteAll();

@@ -6,16 +6,21 @@ import com.fcv.citas.appointment.adapter.out.persistence.entity.AvailabilitySlot
 import com.fcv.citas.appointment.adapter.out.persistence.entity.ProfessionalEntity;
 import com.fcv.citas.appointment.adapter.out.persistence.entity.ProfessionalSpecialtyEntity;
 import com.fcv.citas.appointment.adapter.out.persistence.entity.SpecialtyEntity;
+import com.fcv.citas.appointment.adapter.out.persistence.entity.VenueEntity;
 import com.fcv.citas.appointment.adapter.out.persistence.repository.AppointmentJpaRepository;
 import com.fcv.citas.appointment.adapter.out.persistence.repository.AppointmentSlotJpaRepository;
 import com.fcv.citas.appointment.adapter.out.persistence.repository.AvailabilitySlotJpaRepository;
 import com.fcv.citas.appointment.adapter.out.persistence.repository.ProfessionalJpaRepository;
 import com.fcv.citas.appointment.adapter.out.persistence.repository.ProfessionalSpecialtyJpaRepository;
 import com.fcv.citas.appointment.adapter.out.persistence.repository.SpecialtyJpaRepository;
+import com.fcv.citas.appointment.adapter.out.persistence.repository.VenueJpaRepository;
 import com.fcv.citas.user.adapter.out.persistence.entity.UserEntity;
+import com.fcv.citas.user.adapter.out.security.JwtTokenAdapter;
+import com.fcv.citas.user.domain.SessionIdentity;
 import com.fcv.citas.user.adapter.out.persistence.repository.UserAffiliationJpaRepository;
 import com.fcv.citas.user.adapter.out.persistence.repository.UserJpaRepository;
 import com.fcv.citas.user.adapter.out.persistence.repository.UserRoleJpaRepository;
+import com.fcv.citas.user.adapter.out.persistence.repository.RefreshSessionJpaRepository;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -23,6 +28,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.http.HttpHeaders;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
@@ -46,16 +52,20 @@ class AppointmentReservationApiIntegrationTest {
     @Autowired UserRoleJpaRepository userRoleRepository;
     @Autowired ProfessionalJpaRepository professionalRepository;
     @Autowired SpecialtyJpaRepository specialtyRepository;
+    @Autowired VenueJpaRepository venueRepository;
     @Autowired ProfessionalSpecialtyJpaRepository professionalSpecialtyRepository;
     @Autowired AvailabilitySlotJpaRepository availabilitySlotRepository;
     @Autowired AppointmentJpaRepository appointmentRepository;
     @Autowired AppointmentSlotJpaRepository appointmentSlotRepository;
+    @Autowired JwtTokenAdapter tokenAdapter;
+    @Autowired RefreshSessionJpaRepository refreshSessionRepository;
 
     private UserEntity firstUser;
     private UserEntity secondUser;
     private ProfessionalEntity professional;
     private SpecialtyEntity generalSpecialty;
     private SpecialtyEntity specializedSpecialty;
+    private VenueEntity venue;
 
     @BeforeEach
     void setUp() {
@@ -65,6 +75,7 @@ class AppointmentReservationApiIntegrationTest {
         secondUser = userRepository.save(user("Paciente Dos", "patient-two@example.test", "PATIENT-2"));
         UserEntity professionalUser = userRepository.save(user("Profesional Uno", "professional@example.test", "PROF-1"));
         professional = professionalRepository.save(new ProfessionalEntity(professionalUser, true));
+        venue = venueRepository.findById(1L).orElseThrow();
         generalSpecialty = specialtyRepository.save(new SpecialtyEntity("Medicina General", 30, true));
         specializedSpecialty = specialtyRepository.save(new SpecialtyEntity("Cardiología sintética", 60, true));
         professionalSpecialtyRepository.save(new ProfessionalSpecialtyEntity(professional, generalSpecialty));
@@ -79,12 +90,13 @@ class AppointmentReservationApiIntegrationTest {
     @Test
     void approvesOneGeneralReservationAndRejectsTheSecondUserForTheSameSlot() throws Exception {
         Instant slotStart = Instant.parse("2030-01-15T09:00:00Z");
-        availabilitySlotRepository.save(new AvailabilitySlotEntity(professional, slotStart));
+        availabilitySlotRepository.save(new AvailabilitySlotEntity(professional, venue, slotStart));
         List<Integer> attemptStatuses = new ArrayList<>();
 
         MvcResult firstAttempt = mockMvc.perform(post("/api/v1/appointments")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(request(firstUser.getId(), generalSpecialty.getId(), slotStart, "GENERAL")))
+                        .header(HttpHeaders.AUTHORIZATION, authorization(firstUser))
+                        .content(request(generalSpecialty.getId(), slotStart, "GENERAL")))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.status").value("APPROVED"))
                 .andReturn();
@@ -92,7 +104,8 @@ class AppointmentReservationApiIntegrationTest {
 
         MvcResult secondAttempt = mockMvc.perform(post("/api/v1/appointments")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(request(secondUser.getId(), generalSpecialty.getId(), slotStart, "GENERAL")))
+                        .header(HttpHeaders.AUTHORIZATION, authorization(secondUser))
+                        .content(request(generalSpecialty.getId(), slotStart, "GENERAL")))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("SLOT_UNAVAILABLE"))
                 .andReturn();
@@ -103,6 +116,7 @@ class AppointmentReservationApiIntegrationTest {
         assertThat(attemptStatuses).containsExactly(201, 409);
         assertThat(appointments).hasSize(1);
         assertThat(appointments.getFirst().getStatus().name()).isEqualTo("APPROVED");
+        assertThat(appointments.getFirst().getUser().getId()).isEqualTo(firstUser.getId());
         assertThat(links).hasSize(1);
         assertThat(links.stream().map(link -> link.getSlot().getId())).doesNotHaveDuplicates();
     }
@@ -110,12 +124,13 @@ class AppointmentReservationApiIntegrationTest {
     @Test
     void createsRequestedSpecializedAppointmentAndRetainsEveryRequiredSlot() throws Exception {
         Instant slotStart = Instant.parse("2030-01-15T11:00:00Z");
-        AvailabilitySlotEntity firstSlot = availabilitySlotRepository.save(new AvailabilitySlotEntity(professional, slotStart));
-        AvailabilitySlotEntity secondSlot = availabilitySlotRepository.save(new AvailabilitySlotEntity(professional, slotStart.plusSeconds(30 * 60)));
+        AvailabilitySlotEntity firstSlot = availabilitySlotRepository.save(new AvailabilitySlotEntity(professional, venue, slotStart));
+        AvailabilitySlotEntity secondSlot = availabilitySlotRepository.save(new AvailabilitySlotEntity(professional, venue, slotStart.plusSeconds(30 * 60)));
 
         mockMvc.perform(post("/api/v1/appointments")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(request(firstUser.getId(), specializedSpecialty.getId(), slotStart, "SPECIALIZED")))
+                        .header(HttpHeaders.AUTHORIZATION, authorization(firstUser))
+                        .content(request(specializedSpecialty.getId(), slotStart, "SPECIALIZED")))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.status").value("REQUESTED"));
 
@@ -133,16 +148,22 @@ class AppointmentReservationApiIntegrationTest {
         return new UserEntity(name, "Sintético", "CC", documentNumber, email, "3000000000", "test-hash");
     }
 
-    private String request(Long userId, Long specialtyId, Instant startsAt, String appointmentType) {
+    private String request(Long specialtyId, Instant startsAt, String appointmentType) {
         return """
                 {
-                  "userId": %d,
                   "professionalId": %d,
                   "specialtyId": %d,
+                  "venueId": %d,
                   "startsAt": "%s",
                   "appointmentType": "%s"
                 }
-                """.formatted(userId, professional.getId(), specialtyId, startsAt, appointmentType);
+                """.formatted(professional.getId(), specialtyId, venue.getId(), startsAt, appointmentType);
+    }
+
+    private String authorization(UserEntity user) {
+        var identity = new SessionIdentity(user.getId(), user.getFirstName(), user.getLastName(),
+                user.getEmail(), user.getPasswordHash(), List.of("USER"));
+        return "Bearer " + tokenAdapter.createAccess(identity, Instant.now(), Instant.now().plusSeconds(900));
     }
 
     private void clearReservationData() {
@@ -153,6 +174,7 @@ class AppointmentReservationApiIntegrationTest {
         professionalRepository.deleteAll();
         specialtyRepository.deleteAll();
         affiliationRepository.deleteAll();
+        refreshSessionRepository.deleteAll();
         userRoleRepository.deleteAll();
         userRepository.deleteAll();
     }

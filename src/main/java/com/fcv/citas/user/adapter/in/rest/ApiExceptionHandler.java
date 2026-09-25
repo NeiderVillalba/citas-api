@@ -3,6 +3,7 @@ package com.fcv.citas.user.adapter.in.rest;
 import com.fcv.citas.appointment.domain.InvalidAppointmentRequestException;
 import com.fcv.citas.appointment.domain.SlotUnavailableException;
 import com.fcv.citas.user.domain.InvalidPlanException;
+import com.fcv.citas.user.domain.InvalidSessionException;
 import com.fcv.citas.user.domain.UserAlreadyExistsException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
@@ -13,6 +14,12 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 @RestControllerAdvice
 public class ApiExceptionHandler {
+    @ExceptionHandler(InvalidSessionException.class)
+    public ResponseEntity<ApiError> invalidSession(InvalidSessionException exception) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(new ApiError("INVALID_SESSION", exception.getMessage()));
+    }
+
     @ExceptionHandler(SlotUnavailableException.class)
     public ResponseEntity<ApiError> slotUnavailable(SlotUnavailableException exception) {
         return ResponseEntity.status(HttpStatus.CONFLICT)

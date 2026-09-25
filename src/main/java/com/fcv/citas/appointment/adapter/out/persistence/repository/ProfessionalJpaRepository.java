@@ -7,4 +7,5 @@ import java.util.Optional;
 
 public interface ProfessionalJpaRepository extends JpaRepository<ProfessionalEntity, Long> {
     Optional<ProfessionalEntity> findByIdAndActiveTrue(Long id);
+    Optional<ProfessionalEntity> findByUserId(Long userId);
 }

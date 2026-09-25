@@ -1,8 +1,8 @@
 # citas-api
 
-Repositorio backend del proyecto. Implementa el slice inicial de registro USER y consulta de planes activos.
+Backend Spring Boot del laboratorio de citas. Incluye registro y sesión USER, catálogos de reserva, consulta de disponibilidad y citas propias, y reserva transaccional.
 
-## Debe ser construido por el estudiante
+## Stack
 - Java 21 + Spring Boot 3.5.x + Maven.
 - Arquitectura hexagonal.
 - MySQL + Flyway.
@@ -28,8 +28,14 @@ mvn test
 
 - GET /api/v1/plans/active
 - POST /api/v1/auth/register
+- POST /api/v1/auth/login, /refresh, /logout
+- GET /api/v1/specialties/active, /api/v1/venues, /api/v1/professionals, /api/v1/availability
+- GET /api/v1/appointments/mine
+- POST /api/v1/appointments
 
 El contrato y sus errores están documentados en docs/wiki/llm-wiki/wiki/contracts/rest.md.
+
+Para recorrer el flujo de reserva en un entorno local vacío, define `DEMO_SEED=true`. El arranque crea dos profesionales y slots sintéticos para los siguientes días hábiles. Sus contraseñas se generan aleatoriamente y no se muestran. Mantén esta opción desactivada fuera del laboratorio.
 
 ## Documentación compartida
 - `docs/wiki/scrum/`: épicas/HU generadas con la Skill Scrum.
