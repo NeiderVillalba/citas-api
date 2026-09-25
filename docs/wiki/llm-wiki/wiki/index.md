@@ -28,6 +28,7 @@ La solución de referencia de base de datos del trainer no está ingerida ni deb
 - [Preferencias](preferences.md)
 - [Riesgos y preguntas abiertas](risks-and-open-questions.md)
 - [Registro cronológico](log.md)
+- [Evidencia S3 de hooks](../../../verification/S3-quality-gates.md)
 
 ## Operación
 

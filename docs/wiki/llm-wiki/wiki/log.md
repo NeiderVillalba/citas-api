@@ -25,3 +25,5 @@
 2026-09-25 | LINT | ciclo inicial USER/ADMIN cross-repo | Maven/H2, pruebas del cliente REST, TypeScript y Vite | backend: 13 pruebas aprobadas; frontend: 7 pruebas, lint/typecheck y build de producción aprobados. El sandbox bloqueó inicialmente esbuild (`spawn EPERM`); el build se completó al ejecutar Vite con permiso revisado.
 
 2026-09-25 | LINT | verificación final del acople Stitch | cambios finales de citas-web | se añadieron pruebas para la bandeja ADMIN, la decisión con motivo, la cancelación y la consulta de historial; suite final del cliente: 9/9 pruebas, typecheck y build de producción aprobados.
+
+2026-09-25 | LEARN | gates de verificación S3 | Guía S2–S6, seguridad y ejecución de hooks en ambos repos | se versionaron hooks pre-commit con bloqueo de `.env`/credenciales y verificaciones; quedó registrada evidencia FAIL para fixture sintético y PASS para API (13 pruebas Maven) y web (9 pruebas + typecheck). Ver [evidencia S3](../../../verification/S3-quality-gates.md).

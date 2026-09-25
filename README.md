@@ -43,6 +43,8 @@ Para recorrer el flujo de reserva en un entorno local vacío, define `DEMO_SEED=
 
 Para habilitar la bandeja administrativa local, configura `ADMIN_BOOTSTRAP_EMAIL` y `ADMIN_BOOTSTRAP_PASSWORD` (mínimo 12 caracteres) en variables de entorno. La cuenta se crea una vez con rol ADMIN y contraseña BCrypt; no hay credenciales por defecto.
 
+Para habilitar el hook de verificación de S3 en este clon, ejecuta `git config --local core.hooksPath .githooks`. Cada commit ejecutará comprobación de secretos y `mvn test` (con Docker si Maven no está instalado). Evidencia: `docs/verification/S3-quality-gates.md`.
+
 ## Documentación compartida
 - `docs/wiki/scrum/`: épicas/HU generadas con la Skill Scrum.
 - `docs/wiki/llm-wiki/`: única LLM Wiki global del workspace.
